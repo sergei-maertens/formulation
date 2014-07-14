@@ -255,6 +255,6 @@ class MultipleFormsTest(TemplateTestMixin, SimpleTestCase):
             {% field form.name 'RecurringNode' %}
             {% endform %}
         """
-        rendered = self._render_string(template, self.context)
+        rendered = self._render_string(template, self.context).split()
         self.assertIn('foo', rendered)
         self.assertIn('bar', rendered)
