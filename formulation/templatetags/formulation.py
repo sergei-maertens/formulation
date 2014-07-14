@@ -16,7 +16,7 @@ from django.utils.encoding import force_text
 register = template.Library()
 
 
-def resolve_blocks(template, context, tmpl_name=None):
+def resolve_blocks(template, context):
     '''Get all the blocks from this template, accounting for 'extends' tags'''
     try:
         blocks = context.render_context[BLOCK_CONTEXT_KEY]
@@ -27,12 +27,9 @@ def resolve_blocks(template, context, tmpl_name=None):
     if isinstance(template, six.string_types):
         template = get_template(template)
 
-    if tmpl_name is None:
-        tmpl_name = template.name
-
     # Add this templates blocks as the first
     local_blocks = dict(
-        ('{0}-{1}'.format(tmpl_name, block.name), block)
+        (block.name, block)
         for block in template.nodelist.get_nodes_by_type(BlockNode)
     )
     blocks.add_blocks(local_blocks)
@@ -45,7 +42,7 @@ def resolve_blocks(template, context, tmpl_name=None):
 
         # Get the parent, and recurse
         parent_template = extends_node.get_parent(context)
-        resolve_blocks(parent_template, context, tmpl_name=tmpl_name)
+        resolve_blocks(parent_template, context)
 
     return blocks
 
@@ -104,7 +101,6 @@ class FormNode(template.Node):
         extra = {
             'formulation': resolve_blocks(tmpl_name, context),
             'formulation-form': form,
-            'formulation-tplname': tmpl_name,
         }
 
         # Render our children
@@ -140,16 +136,13 @@ def field(context, field, widget=None, **kwargs):
     # Allow supplied values to override field data
     field_data.update(kwargs)
 
-    # prefix with the template name to get the correct block in case of
-    # multiple {% form %} tags in one page. # see test_tags.MultipleFormsTest
-    prefix = context['formulation-tplname']
     if widget is None:
-        for name in auto_widget(field, prefix):
+        for name in auto_widget(field):
             block = context['formulation'].get_block(name)
             if block is not None:
                 break
     else:
-        block = context['formulation'].get_block('{0}-{1}'.format(prefix, widget))
+        block = context['formulation'].get_block(widget)
 
     if block is None:
         raise template.TemplateSyntaxError("Could not find widget for field: %r" % field)
@@ -172,26 +165,25 @@ def flat_attrs(attrs):
 
 
 @register.filter
-def auto_widget(field, prefix=None):
+def auto_widget(field):
     '''Return a list of widget names for the provided field.'''
     # Auto-detect
     info = {
         'widget': field.field.widget.__class__.__name__,
         'field': field.field.__class__.__name__,
         'name': field.name,
-        'prefix': '{0}-'.format(prefix) or ''
     }
 
     return [
         fmt.format(**info)
         for fmt in (
-            '{prefix}{field}_{widget}_{name}',
-            '{prefix}{field}_{name}',
-            '{prefix}{widget}_{name}',
-            '{prefix}{field}_{widget}',
-            '{prefix}{name}',
-            '{prefix}{widget}',
-            '{prefix}{field}',
+            '{field}_{widget}_{name}',
+            '{field}_{name}',
+            '{widget}_{name}',
+            '{field}_{widget}',
+            '{name}',
+            '{widget}',
+            '{field}',
         )
     ]
 
