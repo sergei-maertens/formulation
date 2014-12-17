@@ -99,9 +99,11 @@ class FormNode(template.Node):
             form = form.resolve(context)
 
         safe_context = copy(context)
-        # Get a fresh, clean BlockContext
-        context.render_context[BLOCK_CONTEXT_KEY] = BlockContext()
-        # Grab the template snippets
+        # Since render_context is derived from BaseContext, a simple copy will
+        # wind up with the same stack of dicts.
+        safe_context.render_context = safe_context.render_context.new({
+            BLOCK_CONTEXT_KEY: BlockContext(),
+        })
 
         extra = {
             'formulation': resolve_blocks(tmpl_name, safe_context),
@@ -109,8 +111,8 @@ class FormNode(template.Node):
         }
 
         # Render our children
-        with extra_context(context, extra):
-            return self.nodelist.render(context)
+        with extra_context(safe_context, extra):
+            return self.nodelist.render(safe_context)
 
 
 @register.simple_tag(takes_context=True)
@@ -121,6 +123,8 @@ def field(context, field, widget=None, **kwargs):
     field_data = {
         'form_field': field,
         'id': field.auto_id,
+        'widget_type': field.field.widget.__class__.__name__,
+        'field_type': field.field.__class__.__name__,
     }
 
     for attr in ('css_classes', 'errors', 'field', 'form', 'help_text',
@@ -129,28 +133,36 @@ def field(context, field, widget=None, **kwargs):
 
     for attr in ('choices', 'widget', 'required'):
         field_data[attr] = getattr(field.field, attr, None)
-        if attr == 'choices' and field_data[attr]:
-            field_data[attr] = [
-                (force_text(k), v)
-                for k, v in field_data[attr]
-            ]
-            # Normalize the value [django.forms.widgets.Select.render_options]
-            field_data['value'] = force_text(field_data['value']())
 
+    if field_data['choices']:
+        field_data['display'] = dict(field.field.choices).get(field.value, '')
+        field_data['choices'] = [
+            (force_text(k), v)
+            for k, v in field_data['choices']
+        ]
+        # Normalize the value [django.forms.widgets.Select.render_options]
+        field_data['value'] = force_text(field_data['value']())
 
     # Allow supplied values to override field data
     field_data.update(kwargs)
 
     if widget is None:
-        for name in auto_widget(field):
-            block = context['formulation'].get_block(name)
-            if block is not None:
-                break
+        widgets = auto_widget(field)
     else:
-        block = context['formulation'].get_block(widget)
+        widgets = [widget]
+    for name in widgets:
+        block = context['formulation'].get_block(name)
+        if block is not None:
+            break
 
     if block is None:
-        raise template.TemplateSyntaxError("Could not find widget for field: %r" % field)
+        raise template.TemplateSyntaxError(
+            "No widget for field: %s (%r) [Tried: %s]" % (
+                field.name,
+                field.field,
+                widgets
+            )
+        )
 
     field_data['block'] = block
     with extra_context(context, field_data):

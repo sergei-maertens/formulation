@@ -2,6 +2,31 @@
 Changelog
 =========
 
+v2.0.12
+=======
+
+Features added:
+
+- Added "widget_type" and "field_type" to exploded field data.
+- Added "display" value to exploded field data for fields with choices.
+- Move 'choices' handling out of inner loop
+- Improve error message when widget can't be found.
+
+v2.0.11
+=======
+
+Bugs Fixed:
+
+- Use the "new" method of request_context instead of deep copy. [Fixes #23]
+- Refactor tests to make easier to run
+
+v2.0.10
+=======
+
+Bugs Fixed:
+
+- One more change to BlockContext handling. [More thanks to Sergei Maertens]
+
 v2.0.9
 ======
 

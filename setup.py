@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='formulation',
-    version='2.0.9',
+    version='2.0.11',
     description='Django Form rendering tool',
     author='Curtis Maloney',
     author_email='curtis@tinbrain.net',
@@ -18,5 +18,11 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: Implementation :: PyPy',
     ],
 )
