@@ -141,7 +141,11 @@ def field(context, field, widget=None, **kwargs):
             for k, v in field_data['choices']
         ]
         # Normalize the value [django.forms.widgets.Select.render_options]
-        value = field_data['value']()
+        value = field_data['value']() 
+        # force_text(None) is not what we want, results in value="None" for 
+        # ModelChoiceField with HiddenInput
+        if value is None:
+            value = ''
         field_data['value'] = ([force_text(v) for v in value]
                               if isinstance(value, (list, tuple))
                               else force_text(value))
