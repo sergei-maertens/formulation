@@ -118,7 +118,14 @@ class FormNode(template.Node):
 @register.simple_tag(takes_context=True)
 def field(context, field, widget=None, **kwargs):
     if isinstance(field, six.string_types):
-        field = context['formulation-form'][field]
+        formulation_form = context['formulation-form']
+        if formulation_form is None:
+            raise ValueError(
+                'The form field you\'re trying to access probably doesn\'t '
+                'exist on the form.'
+            )
+        else:
+            field = formulation_form[field]
 
     field_data = {
         'form_field': field,

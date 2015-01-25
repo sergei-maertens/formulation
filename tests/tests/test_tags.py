@@ -99,6 +99,7 @@ Tests for proper selected value detection.
     PARTIALS = {
         'use_correct_block': "{% field form.name 'custom_input' %}",
         'unknown_block': "{% field form.name 'does_not_exist' %}",
+        'unknown_field': "{% field form.choose_unicorn 'TextInput' %}",
         'auto_widget1': "{% field form.name %}",
         'auto_widget2': "{% field form.gender %}",
         'auto_widget3': "{% field form.is_cool %}",
@@ -123,6 +124,19 @@ Tests for proper selected value detection.
         template = get_template('unknown_block')
         with self.assertRaises(TemplateSyntaxError):
             template.render(self.context)
+
+    def test_wrong_field(self):
+        """
+        Tests the debug information when trying to render a non-existent field.
+        """
+        template = get_template('unknown_field')
+        with self.assertRaises(ValueError) as exc:
+            template.render(self.context)
+        self.assertEqual(
+            exc.exception.args[0],
+            'The form field you\'re trying to access probably doesn\'t '
+            'exist on the form.'
+        )
 
     def test_auto_widget(self):
         """
